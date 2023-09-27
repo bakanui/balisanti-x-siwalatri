@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\JadwalKeberangkatan;
+use App\Models\HistoryKeberangkatan;
 use App\Models\Kapal;
 use App\Models\Rute;
 use App\Models\Armada;
@@ -276,51 +277,6 @@ class JadwalKeberangkatanController extends Controller
         return response()->json(['message' => 'Jadwal not created'], 404);
     }
 
-    // public function storeBySiwalatri(Request $request) {
-    //     $validator = Validator::make($request->all(),[
-    //         'id_jadwal' => 'required',
-    //         'jadwal' => 'required',
-    //         'status' => 'required|string',
-    //         'id_nahkoda' => 'required',
-    //         'id_kapal' => 'required',
-    //         'id_rute' => 'required',
-    //         'ekstra' => 'required',
-    //         'id_loket' => 'required',
-    //         'harga_tiket' => 'required|array',
-    //     ]);
-    //     $jadwal = new JadwalKeberangkatan([
-    //         'id_jadwal' => $request->input('id'),
-    //         'jadwal' => $request->input('jadwal'),
-    //         'status' => $request->input('status'),
-    //         'harga' => 0,
-    //         'id_armada' => $request->input('id_armada'),
-    //         'id_nahkoda' => $request->input('id_nahkoda'),
-    //         'id_kapal' => $request->input('id_kapal'),
-    //         'id_rute' => $request->input('id_rute'),
-    //         'ekstra' => $request->input('ekstra'),
-    //         'id_loket' => $request->input('id_loket'),
-    //     ]);
-    //     $dat = $request->input('id');
-    //     $data = $validator->validated();
-    //     if ($jadwal->save()) {
-    //         $hargas = array_map(function ($e) use ($jadwal){
-    //             $e['id_jadwal'] = $dat;
-    //             $e['created_at'] = date('Y-m-d H:i:s');
-    //             $e['updated_at'] = date('Y-m-d H:i:s');
-    //             return $e;
-    //         }, $data['harga_tiket']);
-    //         Tiket::insert($hargas);
-    //         $response = [
-    //             'message' => 'Jadwal created',
-    //             'jadwal' => $jadwal
-    //         ];
-
-    //         return response()->json($response, 200);
-    //     }
-
-    //     return response()->json(['message' => 'Jadwal not created'], 404);
-    // }
-
     public function storeBySiwalatri(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -334,6 +290,8 @@ class JadwalKeberangkatanController extends Controller
             'ekstra' => 'required',
             'id_loket' => 'required',
             'harga_tiket' => 'required|array',
+            'tanggal_berangkat' => 'required',
+            'tanggal_sampai' => 'required'
         ]);
         if($validator->fails()) {
             return response()->json(['error'=>$validator->errors()], 400);
@@ -369,11 +327,23 @@ class JadwalKeberangkatanController extends Controller
                 return $e;
             }, $arrHarga);
             if (Tiket::insert($hargas)) {
-                $response = [
-                    'message' => 'Jadwal created',
-                    'jadwal' => $jadwal
-                ];
-                return response()->json($response, 200);
+                $keberangkatan = new HistoryKeberangkatan([
+                    'id_jadwal' => $jadwal->id_jadwal,
+                    'id_kapal' => $jadwal->id_kapal,
+                    'tanggal_berangkat' => $request->input('tanggal_berangkat'),
+                    'tanggal_sampai' => $request->input('tanggal_sampai'),
+                    'jml_penumpang' => 0
+                ]);
+                if ($keberangkatan->save()) {
+                    $response = [
+                        'message' => 'Jadwal created',
+                        'jadwal' => $jadwal
+                    ];
+                    return response()->json($response, 200);
+                }else{
+                    return response()->json(['message' => 'Jadwal not created'], 404);
+                }
+                
             }
         }
         

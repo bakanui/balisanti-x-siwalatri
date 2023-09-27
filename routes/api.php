@@ -10,6 +10,7 @@ use App\Http\Controllers\JenisKapalController;
 use App\Http\Controllers\StatusKapalController;
 use App\Http\Controllers\DermagaController;
 use App\Http\Controllers\RuteController;
+use App\Http\Controllers\HistoryKeberangkatanController;
 use App\Http\Controllers\JadwalKeberangkatanController;
 use App\Http\Controllers\JenisTujuanController;
 use App\Http\Controllers\PenumpangController;
@@ -274,4 +275,9 @@ Route::get('/testApi', [PenumpangController::class, 'testApi']);
 Route::group(['prefix' => 'jadwal_keberangkatan'], function () {
     Route::post('{id_armada}', [JadwalKeberangkatanController::class,'store']);
     Route::post('', [JadwalKeberangkatanController::class,'storeBySiwalatri']);
+});
+
+Route::group(['prefix' => 'history_keberangkatan'], function () {
+    Route::post('', [HistoryKeberangkatanController::class,'create']);
+    Route::post('/edit', [HistoryKeberangkatanController::class,'edit']);
 });

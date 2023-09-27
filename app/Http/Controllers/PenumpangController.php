@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\JadwalKeberangkatan;
+use App\Models\HistoryKeberangkatan;
 use App\Models\Penumpang;
 use App\Models\Tiket;
 use App\Models\Invoice;
@@ -164,7 +165,6 @@ class PenumpangController extends Controller
 
         if ($penumpang->save()) {
             $jadwal = JadwalKeberangkatan::query()->where('id_jadwal', $request->input('id_jadwal'))->firstOrFail();
-            
             $jadwal->jadwalToPenumpang()->attach($penumpang, ['id_tiket' => $request->input('id_tiket')]);
             DB::table('keberangkatans')->where('id_jadwal', $request->input('id_jadwal'))->where('id_penumpang', $penumpang->id)
             ->update([
@@ -204,6 +204,9 @@ class PenumpangController extends Controller
         $invoice = new Invoice;
         $invoice->save();
         $grandtotal = 0;
+        $id_jadwal = "";
+        $id_kapal = "";
+        $jml_penumpang = count($request['data']);
         foreach ($request['data'] as $key => $r) {
             $penumpang = new Penumpang([
                 'nama_penumpang' => $r['nama_penumpang'],
@@ -217,6 +220,7 @@ class PenumpangController extends Controller
                 'harga_tiket' => $r['harga_tiket'],
                 'catatan'  => $r['catatan']
             ]);
+            $id_jadwal = $r['id_jadwal'];
             if (isset($r['email']) && $r['email'] != $invoice->email) {
                 $invoice->email = $r['email'];
                 $invoice->save();
@@ -241,7 +245,8 @@ class PenumpangController extends Controller
                 ]);
                 $rute = $jadwal->jadwalToRute()->with('tujuan_awals')->with('tujuan_akhirs')->get();
                 $kapal = $jadwal->jadwalToKapal()->get('nama_kapal');
-                
+                $id_jadwal = $r['id_jadwal'];
+                $id_kapal = $jadwal->jadwalToKapal()->get('id_kapal');
                 $response = [
                     'message' => 'Penumpang created',
                     'penumpang' => $penumpang,
@@ -252,17 +257,6 @@ class PenumpangController extends Controller
                 ];
                 array_push($responses,$response);
                 $grandtotal += $penumpang->harga_tiket;
-                // $client = new Client();
-                // $res = $client->request('POST', 'http://maiharta.ddns.net:3333/api/penjualan', [
-                //         'json' => [
-                //             'id_agen' => '58',
-                //             'id_service' => '',
-                //             'tanggal' => $request->,
-                //             'penumpangs' => array(
-                                
-                //             )
-                //         ]
-                // ]);
             }
             else {
                 return response()->json(['message' => 'Penumpang not created'], 404);
@@ -276,6 +270,16 @@ class PenumpangController extends Controller
                     ->where('i.id', $invoice->id)
                     ->first();
         array_push($responses, ['invoice' => $invoice]);
+        
+        $jml_real = HistoryKeberangkatan::where('id_jadwal', $id_jadwal)->where('id_kapal', $id_kapal[0]->id_kapal)->pluck('jml_penumpang');
+        $jml = $jml_real[0] + $jml_penumpang;
+        
+        DB::table('history_keberangkatans')->where('id_jadwal', $id_jadwal)->where('id_kapal', $id_kapal[0]->id_kapal)
+            ->update(
+                array(
+                    'jml_penumpang' => $jml,
+                )
+            );
         return response()->json($responses, 200);
     }
 

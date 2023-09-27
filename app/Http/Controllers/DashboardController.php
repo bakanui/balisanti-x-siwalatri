@@ -15,7 +15,8 @@ use DateTime;
 class DashboardController extends Controller
 {
     //
-    public function laporan_manifest(Request $request, $id_armada) {
+    public function laporan_manifest(Request $request, $id_armada) 
+    {
         $tanggal = $request->input('tanggal');
         
         $jadwal = DB::table('jadwal_keberangkatans')
@@ -42,7 +43,8 @@ class DashboardController extends Controller
         return response()->json($return, 200);
     }
     
-    public function detail(Request $request, $id_jadwal) {
+    public function detail(Request $request, $id_jadwal) 
+    {
         $tanggal = $request->input('tanggal');
         $penumpang = DB::select(
             "SELECT jk.*, hk.*, n.nama_nahkoda, a.nama_armada, d.nama_dermaga as tujuan_awal, ds.nama_dermaga as tujuan_akhir, k.nama_kapal, 
@@ -95,7 +97,8 @@ class DashboardController extends Controller
         return response()->json($response, 200);
     }
 
-    public function detailTanpaHistory(Request $request, $id_jadwal) {
+    public function detailTanpaHistory(Request $request, $id_jadwal) 
+    {
         $tanggal = $request->input('tanggal');
         $detail = DB::select(
             "SELECT a.nama_armada,n.nama_nahkoda, kp.nama_kapal, d.nama_dermaga as tujuan_akhir, d.lokasi, count(k.id) as jml_penum, jk.jadwal, jk.ekstra, '$tanggal' as tanggal_berangkat
@@ -139,7 +142,8 @@ class DashboardController extends Controller
         return $pdf->stream('manifest.pdf');
     }
     
-    public function detailTanpaHistory2(Request $request, $id_jadwal) {
+    public function detailTanpaHistory2(Request $request, $id_jadwal) 
+    {
         $tanggal = $request->input('tanggal');
         $detail = DB::select(
             "SELECT a.nama_armada,n.nama_nahkoda, kp.nama_kapal, d.nama_dermaga as tujuan_akhir, d.lokasi, count(k.id) as jml_penum, jk.jadwal, jk.ekstra, '$tanggal' as tanggal_berangkat
@@ -183,14 +187,16 @@ class DashboardController extends Controller
         return $pdf->stream('manifest2.pdf');
     }
 
-    public function data_bulanan(Request $request) {
+    public function data_bulanan(Request $request) 
+    {
         if($request->input('tanggal') == null) {
-            $penumpang = DB::select("SELECT jk.*, hk.*, n.nama_nahkoda, a.nama_armada, d.nama_dermaga as tujuan_awal, ds.nama_dermaga as tujuan_akhir, k.nama_kapal, t.total FROM `jadwal_keberangkatans` as jk INNER JOIN `armadas` as a ON jk.id_armada = a.id_armada INNER JOIN `nahkodas` as n ON jk.id_nahkoda = n.id_nahkoda INNER JOIN `rutes` as r ON jk.id_rute = r.id_rute INNER JOIN `dermagas` as d ON r.tujuan_awal = d.id_dermaga INNER JOIN `dermagas` as ds ON r.tujuan_akhir = ds.id_dermaga INNER JOIN `kapals` as k ON jk.id_kapal = k.id_kapal INNER JOIN `history_keberangkatan` as hk ON jk.id_jadwal = hk.id_jadwal LEFT JOIN (SELECT k.id_jadwal, COUNT(k.id) as total FROM `keberangkatans` as k WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m') = CURDATE() GROUP BY k.id_jadwal) as t on jk.id_jadwal = t.id_jadwal WHERE DATE_FORMAT(hk.tanggal_berangkat , '%Y-%m') = CURDATE() AND jk.deleted_at is null ORDER BY hk.id DESC");
+            $this_month = Carbon::now()->format('Y-m');
+            $penumpang = DB::select("SELECT jk.*, hk.*, n.nama_nahkoda, a.nama_armada, d.nama_dermaga as tujuan_awal, ds.nama_dermaga as tujuan_akhir, k.nama_kapal, t.total FROM `jadwal_keberangkatans` as jk INNER JOIN `armadas` as a ON jk.id_armada = a.id_armada INNER JOIN `nahkodas` as n ON jk.id_nahkoda = n.id_nahkoda INNER JOIN `rutes` as r ON jk.id_rute = r.id_rute INNER JOIN `dermagas` as d ON r.tujuan_awal = d.id_dermaga INNER JOIN `dermagas` as ds ON r.tujuan_akhir = ds.id_dermaga INNER JOIN `kapals` as k ON jk.id_kapal = k.id_kapal INNER JOIN `history_keberangkatans` as hk ON jk.id_jadwal = hk.id_jadwal LEFT JOIN (SELECT k.id_jadwal, COUNT(k.id) as total FROM `keberangkatans` as k WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m') = CURDATE() GROUP BY k.id_jadwal) as t on jk.id_jadwal = t.id_jadwal WHERE DATE_FORMAT(hk.tanggal_berangkat , '%Y-%m') = ". $this_month . " AND jk.deleted_at is null ORDER BY hk.id DESC");
             
-            $total = DB::select("SELECT jt.id_tujuan, jt.nama_tujuan, kp.total FROM `jenis_tujuans` as jt LEFT JOIN ( SELECT p.id_tujuan, COUNT(p.id_tujuan) as total FROM `penumpangs` as p INNER JOIN `keberangkatans` as k ON p.id_penumpang = k.id_penumpang WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m') = CURDATE() GROUP BY p.id_tujuan ) as kp ON jt.id_tujuan = kp.id_tujuan");
+            $total = DB::select("SELECT jt.id_tujuan, jt.nama_tujuan, kp.total FROM `jenis_tujuans` as jt LEFT JOIN ( SELECT p.id_tujuan, COUNT(p.id_tujuan) as total FROM `penumpangs` as p INNER JOIN `keberangkatans` as k ON p.id_penumpang = k.id_penumpang WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m') = ". $this_month . " GROUP BY p.id_tujuan ) as kp ON jt.id_tujuan = kp.id_tujuan");
         } else {
             $tanggal = $request->input('tanggal');
-            $penumpang = DB::select("SELECT jk.*, hk.*, n.nama_nahkoda, a.nama_armada, d.nama_dermaga as tujuan_awal, ds.nama_dermaga as tujuan_akhir, k.nama_kapal, t.total FROM `jadwal_keberangkatans` as jk INNER JOIN `armadas` as a ON jk.id_armada = a.id_armada INNER JOIN `nahkodas` as n ON jk.id_nahkoda = n.id_nahkoda INNER JOIN `rutes` as r ON jk.id_rute = r.id_rute INNER JOIN `dermagas` as d ON r.tujuan_awal = d.id_dermaga INNER JOIN `dermagas` as ds ON r.tujuan_akhir = ds.id_dermaga INNER JOIN `kapals` as k ON jk.id_kapal = k.id_kapal INNER JOIN `history_keberangkatan` as hk ON jk.id_jadwal = hk.id_jadwal LEFT JOIN (SELECT k.id_jadwal, COUNT(k.id) as total FROM `keberangkatans` as k WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m') = '$tanggal' GROUP BY k.id_jadwal) as t on jk.id_jadwal = t.id_jadwal WHERE DATE_FORMAT(hk.tanggal_berangkat , '%Y-%m') = '$tanggal' AND jk.deleted_at is null ORDER BY hk.id DESC");
+            $penumpang = DB::select("SELECT jk.*, hk.*, n.nama_nahkoda, a.nama_armada, d.nama_dermaga as tujuan_awal, ds.nama_dermaga as tujuan_akhir, k.nama_kapal, t.total FROM `jadwal_keberangkatans` as jk INNER JOIN `armadas` as a ON jk.id_armada = a.id_armada INNER JOIN `nahkodas` as n ON jk.id_nahkoda = n.id_nahkoda INNER JOIN `rutes` as r ON jk.id_rute = r.id_rute INNER JOIN `dermagas` as d ON r.tujuan_awal = d.id_dermaga INNER JOIN `dermagas` as ds ON r.tujuan_akhir = ds.id_dermaga INNER JOIN `kapals` as k ON jk.id_kapal = k.id_kapal INNER JOIN `history_keberangkatans` as hk ON jk.id_jadwal = hk.id_jadwal LEFT JOIN (SELECT k.id_jadwal, COUNT(k.id) as total FROM `keberangkatans` as k WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m') = '$tanggal' GROUP BY k.id_jadwal) as t on jk.id_jadwal = t.id_jadwal WHERE DATE_FORMAT(hk.tanggal_berangkat , '%Y-%m') = '$tanggal' AND jk.deleted_at is null ORDER BY hk.id DESC");
             
             $total = DB::select("SELECT jt.id_tujuan, jt.nama_tujuan, kp.total FROM `jenis_tujuans` as jt LEFT JOIN ( SELECT p.id_tujuan, COUNT(p.id_tujuan) as total FROM `penumpangs` as p INNER JOIN `keberangkatans` as k ON p.id_penumpang = k.id_penumpang WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m') = '$tanggal' GROUP BY p.id_tujuan ) as kp ON jt.id_tujuan = kp.id_tujuan");
         }
@@ -203,9 +209,10 @@ class DashboardController extends Controller
         return response()->json($response, 200);
     }
     
-    public function data_harian(Request $request) {
+    public function data_harian(Request $request) 
+    {
         if($request->input('tanggal') == null) {
-            $penumpang = DB::select("SELECT jk.*, hk.*, n.nama_nahkoda, a.nama_armada, d.nama_dermaga as tujuan_awal, ds.nama_dermaga as tujuan_akhir, k.nama_kapal, t.total FROM `jadwal_keberangkatans` as jk INNER JOIN `armadas` as a ON jk.id_armada = a.id_armada INNER JOIN `nahkodas` as n ON jk.id_nahkoda = n.id_nahkoda INNER JOIN `rutes` as r ON jk.id_rute = r.id_rute INNER JOIN `dermagas` as d ON r.tujuan_awal = d.id_dermaga INNER JOIN `dermagas` as ds ON r.tujuan_akhir = ds.id_dermaga INNER JOIN `kapals` as k ON jk.id_kapal = k.id_kapal INNER JOIN `history_keberangkatan` as hk ON jk.id_jadwal = hk.id_jadwal LEFT JOIN (SELECT k.id_jadwal, COUNT(k.id) as total FROM `keberangkatans` as k WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m-%d') = CURDATE() GROUP BY k.id_jadwal) as t on jk.id_jadwal = t.id_jadwal WHERE DATE_FORMAT(hk.tanggal_berangkat , '%Y-%m-%d') = CURDATE() AND jk.deleted_at is null ORDER BY hk.id DESC");
+            $penumpang = DB::select("SELECT jk.*, hk.*, n.nama_nahkoda, a.nama_armada, d.nama_dermaga as tujuan_awal, ds.nama_dermaga as tujuan_akhir, k.nama_kapal, t.total FROM `jadwal_keberangkatans` as jk INNER JOIN `armadas` as a ON jk.id_armada = a.id_armada INNER JOIN `nahkodas` as n ON jk.id_nahkoda = n.id_nahkoda INNER JOIN `rutes` as r ON jk.id_rute = r.id_rute INNER JOIN `dermagas` as d ON r.tujuan_awal = d.id_dermaga INNER JOIN `dermagas` as ds ON r.tujuan_akhir = ds.id_dermaga INNER JOIN `kapals` as k ON jk.id_kapal = k.id_kapal INNER JOIN `history_keberangkatans` as hk ON jk.id_jadwal = hk.id_jadwal LEFT JOIN (SELECT k.id_jadwal, COUNT(k.id) as total FROM `keberangkatans` as k WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m-%d') = CURDATE() GROUP BY k.id_jadwal) as t on jk.id_jadwal = t.id_jadwal WHERE DATE_FORMAT(hk.tanggal_berangkat , '%Y-%m-%d') = CURDATE() AND jk.deleted_at is null ORDER BY hk.id DESC");
             
             $total = DB::select("SELECT jt.id_tujuan, jt.nama_tujuan, kp.total FROM `jenis_tujuans` as jt LEFT JOIN ( SELECT p.id_tujuan, COUNT(p.id_tujuan) as total FROM `penumpangs` as p INNER JOIN `keberangkatans` as k ON p.id_penumpang = k.id_penumpang WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m-%d') = CURDATE() GROUP BY p.id_tujuan ) as kp ON jt.id_tujuan = kp.id_tujuan");
             
@@ -213,7 +220,7 @@ class DashboardController extends Controller
              
         } else {
             $tanggal = $request->input('tanggal');
-            $penumpang = DB::select("SELECT jk.*, hk.*, n.nama_nahkoda, a.nama_armada, d.nama_dermaga as tujuan_awal, ds.nama_dermaga as tujuan_akhir, k.nama_kapal, t.total FROM `jadwal_keberangkatans` as jk INNER JOIN `armadas` as a ON jk.id_armada = a.id_armada INNER JOIN `nahkodas` as n ON jk.id_nahkoda = n.id_nahkoda INNER JOIN `rutes` as r ON jk.id_rute = r.id_rute INNER JOIN `dermagas` as d ON r.tujuan_awal = d.id_dermaga INNER JOIN `dermagas` as ds ON r.tujuan_akhir = ds.id_dermaga INNER JOIN `kapals` as k ON jk.id_kapal = k.id_kapal INNER JOIN `history_keberangkatan` as hk ON jk.id_jadwal = hk.id_jadwal LEFT JOIN (SELECT k.id_jadwal, COUNT(k.id) as total FROM `keberangkatans` as k WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m-%d') = '$tanggal' GROUP BY k.id_jadwal) as t on jk.id_jadwal = t.id_jadwal WHERE DATE_FORMAT(hk.tanggal_berangkat , '%Y-%m-%d') = '$tanggal' AND jk.deleted_at is null ORDER BY hk.id DESC");
+            $penumpang = DB::select("SELECT jk.*, hk.*, n.nama_nahkoda, a.nama_armada, d.nama_dermaga as tujuan_awal, ds.nama_dermaga as tujuan_akhir, k.nama_kapal, t.total FROM `jadwal_keberangkatans` as jk INNER JOIN `armadas` as a ON jk.id_armada = a.id_armada INNER JOIN `nahkodas` as n ON jk.id_nahkoda = n.id_nahkoda INNER JOIN `rutes` as r ON jk.id_rute = r.id_rute INNER JOIN `dermagas` as d ON r.tujuan_awal = d.id_dermaga INNER JOIN `dermagas` as ds ON r.tujuan_akhir = ds.id_dermaga INNER JOIN `kapals` as k ON jk.id_kapal = k.id_kapal INNER JOIN `history_keberangkatans` as hk ON jk.id_jadwal = hk.id_jadwal LEFT JOIN (SELECT k.id_jadwal, COUNT(k.id) as total FROM `keberangkatans` as k WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m-%d') = '$tanggal' GROUP BY k.id_jadwal) as t on jk.id_jadwal = t.id_jadwal WHERE DATE_FORMAT(hk.tanggal_berangkat , '%Y-%m-%d') = '$tanggal' AND jk.deleted_at is null ORDER BY hk.id DESC");
             
             $total = DB::select("SELECT jt.id_tujuan, jt.nama_tujuan, kp.total FROM `jenis_tujuans` as jt LEFT JOIN ( SELECT p.id_tujuan, COUNT(p.id_tujuan) as total FROM `penumpangs` as p INNER JOIN `keberangkatans` as k ON p.id_penumpang = k.id_penumpang WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m-%d') = '$tanggal' GROUP BY p.id_tujuan ) as kp ON jt.id_tujuan = kp.id_tujuan");
             
@@ -229,7 +236,8 @@ class DashboardController extends Controller
         return response()->json($response, 200);
     }
     
-    public function grafikPenumpang($query) {
+    public function grafikPenumpang($query) 
+    {
         $armadas = Armada::all();
 
         if($query == 3) {
@@ -318,7 +326,8 @@ class DashboardController extends Controller
         }
     }
 
-    public function grafikKeberangkatan($query) {
+    public function grafikKeberangkatan($query) 
+    {
         if($query == 3) {
             $data = array(
                 'time' => Carbon::now('+08:00')->format('Y'),
@@ -381,7 +390,8 @@ class DashboardController extends Controller
         }
     }
 
-    public function grafikKapal() {
+    public function grafikKapal() 
+    {
         $data = array(
             'time' => Carbon::now('+08:00')->format('d, M Y'),
         );
@@ -389,7 +399,7 @@ class DashboardController extends Controller
         ->select(DB::raw('count(jk.id_kapal) as total'), 'a.nama_armada')
         ->join('jadwal_keberangkatans as jk', 'jk.id_jadwal', '=', 'k.id_jadwal')
         ->join('armadas as a', 'jk.id_armada', '=', 'a.id_armada')
-        ->join('history_keberangkatan as hk', 'jk.id_jadwal', '=', 'hk.id_jadwal')
+        ->join('history_keberangkatans as hk', 'jk.id_jadwal', '=', 'hk.id_jadwal')
         ->whereYear('k.tanggal_keberangkatan', Carbon::now('+08:00'))
         ->whereMonth('k.tanggal_keberangkatan', Carbon::now('+08:00'))
         ->whereDay('k.tanggal_keberangkatan', Carbon::now('+08:00'))
@@ -404,7 +414,8 @@ class DashboardController extends Controller
         return response()->json($data, 200);
     }
 
-    public function grafikJenis($query) {
+    public function grafikJenis($query) 
+    {
         $jenis = JenisPenumpang::all();
 
         if($query == 3) {
@@ -508,7 +519,7 @@ class DashboardController extends Controller
             $tanggal = date('Y-m-d');
         }
         $details = DB::select("SELECT kp.grt, kp.panjang, kp.dwt,hk.id_kapal,hk.id_jadwal,r.tujuan_awal,r.tujuan_akhir,kp.*, a.nama_armada, 
-            count(hk.id) as count_trip,t.total as jml_penumpang FROM history_keberangkatan hk
+            count(hk.id) as count_trip,t.total as jml_penumpang FROM history_keberangkatans hk
             INNER JOIN jadwal_keberangkatans jk ON hk.`id_jadwal`=jk.`id_jadwal`
             inner join rutes r on r.id_rute=jk.id_rute
             INNER JOIN kapals kp ON kp.`id_kapal`=hk.`id_kapal`
@@ -539,7 +550,7 @@ class DashboardController extends Controller
             kp.*, a.nama_armada, count(hk.id) as count_trip,sum(hk.jml_penumpang) as jml_penumpang, 
             d1.nama_dermaga as tujuan_awal, d1.lokasi as lokasi_dermaga, d2.nama_dermaga as tujuan_akhir,
             '$tanggal2' as bulan
-            FROM history_keberangkatan hk
+            FROM history_keberangkatans hk
             INNER JOIN jadwal_keberangkatans jk ON hk.`id_jadwal`=jk.`id_jadwal`
             inner join rutes r on r.id_rute=jk.id_rute
             left join (select id_dermaga,nama_dermaga,lokasi,id_syahbandar from dermagas) d1 ON d1.id_dermaga = r.tujuan_awal
@@ -564,7 +575,7 @@ class DashboardController extends Controller
             $tanggal = date('Y-m-d');
         }
         $details = DB::select("SELECT kp.grt, kp.panjang, kp.dwt,hk.id_kapal,hk.`id_jadwal`,r.tujuan_awal,r.tujuan_akhir,kp.nama_kapal, a.nama_armada, 
-            count(hk.id) as count_trip,sum(hk.jml_penumpang) as jml_penumpang FROM history_keberangkatan hk
+            count(hk.id) as count_trip,sum(hk.jml_penumpang) as jml_penumpang FROM history_keberangkatans hk
             INNER JOIN jadwal_keberangkatans jk ON hk.`id_jadwal`=jk.`id_jadwal`
             inner join rutes r on r.id_rute=jk.id_rute
             INNER JOIN kapals kp ON kp.`id_kapal`=hk.`id_kapal`
@@ -587,7 +598,7 @@ class DashboardController extends Controller
             kp.nama_kapal, a.nama_armada, count(hk.id) as count_trip,
             sum(hk.jml_penumpang) as jml_penumpang, d1.lokasi as lokasi_dermaga, 
             d1.nama_dermaga as tujuan_awal, d2.nama_dermaga as tujuan_akhir, '$tanggal2' as bulan
-            FROM history_keberangkatan hk
+            FROM history_keberangkatans hk
             INNER JOIN jadwal_keberangkatans jk ON hk.`id_jadwal`=jk.`id_jadwal`
             inner join rutes r on r.id_rute=jk.id_rute
             INNER JOIN kapals kp ON kp.`id_kapal`=hk.`id_kapal`
@@ -616,7 +627,7 @@ class DashboardController extends Controller
             $tanggal = date('Y');
         }
         $details = DB::select("SELECT MONTH(hk.tanggal_berangkat) as bulan,a.id_armada,a.nama_armada,r.tujuan_awal,r.tujuan_akhir,
-            count(hk.id) as count_trip,sum(hk.jml_penumpang) as jml_penumpang FROM history_keberangkatan hk
+            count(hk.id) as count_trip,sum(hk.jml_penumpang) as jml_penumpang FROM history_keberangkatans hk
             INNER JOIN jadwal_keberangkatans jk ON hk.`id_jadwal`=jk.`id_jadwal`
             inner join rutes r on r.id_rute=jk.id_rute
             INNER JOIN kapals kp ON kp.`id_kapal`=hk.`id_kapal`
@@ -654,7 +665,7 @@ class DashboardController extends Controller
             ->join('rutes', 'jadwal_keberangkatans.id_rute', '=', 'rutes.id_rute')
             ->join('dermagas as d', 'rutes.tujuan_awal', '=', 'd.id_dermaga')
             ->join('dermagas as ds', 'rutes.tujuan_akhir', '=', 'ds.id_dermaga')
-            ->join('history_keberangkatan as hk', 'hk.id_jadwal', '=', 'jadwal_keberangkatans.id_jadwal')
+            ->join('history_keberangkatans as hk', 'hk.id_jadwal', '=', 'jadwal_keberangkatans.id_jadwal')
             ->join('armadas as a', 'jadwal_keberangkatans.id_armada', '=', 'a.id_armada')
             ->join('nahkodas as n', 'n.id_nahkoda', '=', 'jadwal_keberangkatans.id_nahkoda')
             ->select('jadwal_keberangkatans.*', 'kapals.nama_kapal', 'd.nama_dermaga as tujuan_awal', 'd.lokasi as lokasi_awal', 'ds.nama_dermaga as tujuan_akhir', 'ds.lokasi as lokasi_akhir', 'd.id_syahbandar', 't.total', 'hk.*','a.nama_armada','n.nama_nahkoda')
@@ -667,7 +678,7 @@ class DashboardController extends Controller
                     ->get();
             $penumpangs = DB::table('keberangkatans as k')
                     ->join('jadwal_keberangkatans as jk', 'jk.id_jadwal', '=', 'k.id_jadwal')
-                    ->join('history_keberangkatan as hk', 'hk.id_jadwal', '=', 'jk.id_jadwal')
+                    ->join('history_keberangkatans as hk', 'hk.id_jadwal', '=', 'jk.id_jadwal')
                     ->join('penumpangs as p', 'p.id_penumpang', '=', 'k.id_penumpang')
                     ->join('jenis_tujuans as jt', 'jt.id_tujuan', '=', 'p.id_tujuan')
                     ->select('p.nama_penumpang', 'p.no_identitas','p.jenis_kelamin', 'p.alamat', 'jt.nama_tujuan')
@@ -683,7 +694,7 @@ class DashboardController extends Controller
                     ->get();
             $penumpangs = DB::table('keberangkatans as k')
                     ->join('jadwal_keberangkatans as jk', 'jk.id_jadwal', '=', 'k.id_jadwal')
-                    ->join('history_keberangkatan as hk', 'hk.id_jadwal', '=', 'jk.id_jadwal')
+                    ->join('history_keberangkatans as hk', 'hk.id_jadwal', '=', 'jk.id_jadwal')
                     ->join('penumpangs as p', 'p.id_penumpang', '=', 'k.id_penumpang')
                     ->join('jenis_tujuans as jt', 'jt.id_tujuan', '=', 'p.id_tujuan')
                     ->select('p.nama_penumpang', 'p.no_identitas','p.jenis_kelamin', 'p.alamat', 'jt.nama_tujuan')
