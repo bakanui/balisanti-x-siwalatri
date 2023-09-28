@@ -31,7 +31,6 @@ class PaymentAll extends Command
     public function handle()
     {
         $today = Carbon::now()->format('Y-m-d');
-        // $today = '2023=09-25';
         $xmls = <<<XML
         <soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:laporanPaymentDetailSetelahNoBukti">
             <soapenv:Header/>

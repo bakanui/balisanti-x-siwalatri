@@ -18,6 +18,7 @@ use App\Http\Controllers\SopController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\JenisPenumpangController;
 use App\Http\Controllers\WisataController;
+use App\Http\Controllers\BpdServicelogController;
 use App\Http\Controllers\PengumumanController;
 /*
 |--------------------------------------------------------------------------
@@ -280,4 +281,8 @@ Route::group(['prefix' => 'jadwal_keberangkatan'], function () {
 Route::group(['prefix' => 'history_keberangkatan'], function () {
     Route::post('', [HistoryKeberangkatanController::class,'create']);
     Route::post('/edit', [HistoryKeberangkatanController::class,'edit']);
+});
+
+Route::group(['prefix' => 'logs'], function () {
+    Route::post('/va-bpd', [BpdServicelogController::class,'storeVALogs']);
 });
