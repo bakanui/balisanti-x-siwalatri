@@ -12,8 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('payment:all')->everyFiveMinutes();
-        // $schedule->command('payment:last')->everyTenSeconds();
+        $schedule->command('payment:all')->everyFiveMinutes();
+        $schedule->command('payment:last')->everyTenSeconds();
     }
 
     /**

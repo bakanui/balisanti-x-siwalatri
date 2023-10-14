@@ -5,9 +5,11 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use App\Models\Invoice;
+use App\Models\BpdServicelog;
 use Illuminate\Database\Eloquent\Collection;
 use Mtownsend\XmlToArray\XmlToArray;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PaymentAll extends Command
 {
@@ -39,7 +41,7 @@ class PaymentAll extends Command
                 <username xsi:type="xsd:string">BALI_SANTI</username>
                 <password xsi:type="xsd:string">hbd3q2p9b4l1s4nt1bpd8ovr</password>
                 <instansi xsi:type="xsd:string">ETIKET_BALI_SANTI</instansi>
-                <tanggal xsi:type="xsd:date">$today</tanggal>
+                <tanggal xsi:type="xsd:date">2023-09-26</tanggal>
                 <nobukti xsi:type="xsd:integer">0</nobukti>
             </urn:ws_laporan_payment_detail_setelah_no_bukti>
             </soapenv:Body>
@@ -51,15 +53,33 @@ class PaymentAll extends Command
         $arr = XmlToArray::convert($response);
         $jsonFormatData = $arr["SOAP-ENV:Body"]["ns1:ws_laporan_payment_detail_setelah_no_buktiResponse"]["return"]["@content"];
         $result = json_decode($jsonFormatData, true);
-        foreach ($result['data'] as $key => $r) {
-            $invoice = Invoice::query()
-            ->where('no_va', $r['No Tagihan'])
-            ->update(
-                array(
-                    'status' => $r['sts_bayar'],
-                    'status_reversal' => $r['sts_reversal']
-                )
-            );
+        $status = $result["status"];
+        if($status != false){
+            foreach ($result['data'] as $key => $r) {
+                print_r($r['No Tagihan']);
+                DB::table('invoices')->where('no_va', $r['No Tagihan'])
+                ->update(
+                    array(
+                        'status' => $r['sts_bayar'],
+                        'status_reversal' => $r['sts_reversal']
+                    )
+                );
+            }
+            $penumpang = new BpdServicelog([
+                'code' => $result['code'],
+                'data' => json_encode($result['data']),
+                'message' => $result['message'],
+                'status' => $result['status'],
+            ]);
+            $penumpang->save();
+        }else{
+            $penumpang = new BpdServicelog([
+                'code' => $result['code'],
+                'data' => json_encode($result['data']),
+                'message' => $result['message'],
+                'status' => $result['status'],
+            ]);
+            $penumpang->save();
         }
     }
 }

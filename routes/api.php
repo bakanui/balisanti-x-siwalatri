@@ -285,4 +285,6 @@ Route::group(['prefix' => 'history_keberangkatan'], function () {
 
 Route::group(['prefix' => 'logs'], function () {
     Route::post('/va-bpd', [BpdServicelogController::class,'storeVALogs']);
+    Route::post('/delete', [PenumpangController::class,'deletionChecker']);
+    Route::post('/deletion', [PenumpangController::class,'delete']);
 });

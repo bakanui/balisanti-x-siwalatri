@@ -24,7 +24,7 @@ class DashboardController extends Controller
             ->join('rutes', 'jadwal_keberangkatans.id_rute', '=', 'rutes.id_rute')
             ->join('dermagas as d', 'rutes.tujuan_awal', '=', 'd.id_dermaga')
             ->join('dermagas as ds', 'rutes.tujuan_akhir', '=', 'ds.id_dermaga')
-            ->join('history_keberangkatan as hk', 'hk.id_jadwal', '=', 'jadwal_keberangkatans.id_jadwal')
+            ->join('history_keberangkatans as hk', 'hk.id_jadwal', '=', 'jadwal_keberangkatans.id_jadwal')
             ->select('jadwal_keberangkatans.*', 'kapals.nama_kapal', 'd.nama_dermaga as tujuan_awal', 'd.lokasi as lokasi_awal', 'ds.nama_dermaga as tujuan_akhir', 'ds.lokasi as lokasi_akhir', 'd.id_syahbandar', 't.total', 'hk.*')
             ->where('jadwal_keberangkatans.id_armada', '=', $id_armada);
             
@@ -55,7 +55,7 @@ class DashboardController extends Controller
             INNER JOIN `dermagas` as d ON r.tujuan_awal = d.id_dermaga 
             INNER JOIN `dermagas` as ds ON r.tujuan_akhir = ds.id_dermaga 
             INNER JOIN `kapals` as k ON jk.id_kapal = k.id_kapal 
-            INNER JOIN `history_keberangkatan` as hk ON jk.id_jadwal = hk.id_jadwal 
+            INNER JOIN `history_keberangkatans` as hk ON jk.id_jadwal = hk.id_jadwal 
             LEFT JOIN (SELECT k.id_jadwal, COUNT(k.id) as total FROM `keberangkatans` as k
                 INNER JOIN penumpangs p ON p.id_penumpang=k.id_penumpang 
                 WHERE DATE_FORMAT(k.tanggal_keberangkatan , '%Y-%m-%d') = '$tanggal'

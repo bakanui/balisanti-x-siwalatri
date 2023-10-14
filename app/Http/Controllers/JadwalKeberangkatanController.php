@@ -818,7 +818,7 @@ class JadwalKeberangkatanController extends Controller
             'akhir' => 'required',
             'tanggal' => 'required'
         ]);
-        if ($request->tanggal > date('Y-m-d')) {
+        // if ($request->tanggal > date('Y-m-d')) {
             if (isset($_GET['id_armada'])) {
                 $id_armada = $_GET['id_armada'];
                 $data = DB::select("SELECT jk.id_jadwal,jk.jadwal, jk.id_armada, a.nama_armada, n.nama_nahkoda, k.nama_kapal, k.kapasitas_penumpang, l.nama_loket, IFNULL(x.total_penumpang,0) as total_penumpang, d.nama_dermaga as dermaga_awal, d2.nama_dermaga as dermaga_akhir, d.lokasi as lok_dermaga_awal, d2.lokasi as lok_dermaga_akhir FROM jadwal_keberangkatans jk 
@@ -851,8 +851,8 @@ class JadwalKeberangkatanController extends Controller
                 ORDER BY jk.jadwal");
             }
             return response()->json($data, 200);
-        }
-        return response()->json(['message'=>'harus pilih tanggal setelah tanggal sekarang.'], 201);
+        // }
+        // return response()->json(['message'=>'harus pilih tanggal setelah tanggal sekarang.'], 201);
     }
 
     public function cariZonaTujuan()
