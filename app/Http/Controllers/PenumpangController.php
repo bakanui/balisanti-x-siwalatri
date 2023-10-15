@@ -204,24 +204,6 @@ class PenumpangController extends Controller
     }
 
     public function storeGroup(Request $request) {
-        function whatGender($jenis_kelamin){
-            if ($jenis_kelamin == 0){
-                return "L";
-            }else {
-                return "P";
-            }
-        }
-    
-        function whatAge($jenis_penumpang){
-            if ($jenis_penumpang == "Dewasa"){
-                return rand(18,40);
-            }else if ($jenis_penumpang == "Anak - anak"){
-                return rand(5,17);
-            }else{
-                return rand(0,4);
-            }
-        }
-
         $client = new Client();
         $responses = array();
         $invoice = new Invoice;
@@ -230,6 +212,8 @@ class PenumpangController extends Controller
         $id_jadwal = "";
         $id_kapal = "";
         $nama_kapal = "";
+        $tanggal_berangkat = "";
+        $tanggal_berangkat2 = "";
         $jml_penumpang = count($request['data']);
         foreach ($request['data'] as $key => $r) {
             $penumpang = new Penumpang([
@@ -245,6 +229,8 @@ class PenumpangController extends Controller
                 'catatan'  => $r['catatan']
             ]);
             $id_jadwal = $r['id_jadwal'];
+            $tanggal_berangkat = $r['tanggal'];
+            $tanggal_berangkat2 = $r['tanggal'];
             if (isset($r['email']) && $r['email'] != $invoice->email) {
                 $invoice->email = $r['email'];
                 $invoice->save();
@@ -260,6 +246,7 @@ class PenumpangController extends Controller
                     $invoice->id_armada = $jadwal->id_armada;
                     $invoice->save();
                 }
+                $tanggal_berangkat = $tanggal_berangkat . " " . $jadwal->jadwal;
                 $jadwal->jadwalToPenumpang()->attach($penumpang, ['id_tiket' => $r['id_tiket']]);
                 DB::table('keberangkatans')->where('id_jadwal', $r['id_jadwal'])->where('id_penumpang', $penumpang->id)
                 ->update([
@@ -296,141 +283,22 @@ class PenumpangController extends Controller
                     ->where('i.id', $invoice->id)
                     ->first();
         array_push($responses, ['invoice' => $invoice]);
-        
-        $randTick = $invoice->id;
-        $randTickString = (string) $randTick;
-        $dit_numpangs = array();
-        foreach ($request['data'] as $key => $r) {
-            $dit_numpang = array(
-                'ticket_id' => $invoice->id,
-                'booking_id' => $invoice->id,
-                'passenger_name' => $r['nama_penumpang'],
-                'passenger_nationality_code' => 'ID',
-                'passenger_id_type' => 'KTP',
-                'ticket_id' => $randTickString ,
-                'booking_id' => $randTickString ,
-                'passenger_id_number' => $r['no_identitas'],
-                'passenger_gender' => whatGender($r['jenis_kelamin']),
-                'passenger_age_value' => whatAge('Dewasa'),
-                'passenger_age_status' => 'DEWASA',
-                'passenger_address' => $r['alamat'],
-                'passenger_seat_number' => 'NON SEAT'
-            );
-            array_push($dit_numpangs, $dit_numpang);
+        $jml_real = HistoryKeberangkatan::where('id_jadwal', $id_jadwal)
+                    ->where('id_kapal', $id_kapal[0]->id_kapal)
+                    ->where('tanggal_berangkat', $tanggal_berangkat)
+                    ->pluck('jml_penumpang');
+        if(count($jml_real) == 0){
+            $history = new HistoryKeberangkatan;
+            $history->tanggal_berangkat = $tanggal_berangkat;
+            $history->jml_penumpang = 0;
+            $history->id_jadwal = $id_jadwal;
+            $history->id_kapal = $id_kapal[0]->id_kapal;
+            $history->save();
         }
-        
-        $jml_real = HistoryKeberangkatan::where('id_jadwal', $id_jadwal)->where('id_kapal', $id_kapal[0]->id_kapal)->pluck('jml_penumpang');
-        $jml = $jml_real[0] + $jml_penumpang;
-        
-        DB::table('history_keberangkatans')->where('id_jadwal', $id_jadwal)->where('id_kapal', $id_kapal[0]->id_kapal)
-            ->update(
-                array(
-                    'jml_penumpang' => $jml,
-                )
-            );
         $randTick = $invoice->id;
+        $emailed = $invoice->email;
         $data = Invoice::where('id', $randTick)->first();
-        Mail::to("gusbhas@gmail.com")->send(new ConfirmationPayment($data));
-        $randTickString = (string) $randTick;
-        $dit_numpangs = array();
-        foreach ($request['data'] as $key => $r) {
-            $dit_numpang = array(
-                'ticket_id' => $invoice->id,
-                'booking_id' => $invoice->id,
-                'passenger_name' => $r['nama_penumpang'],
-                'passenger_nationality_code' => 'ID',
-                'passenger_id_type' => 'KTP',
-                'ticket_id' => $randTickString ,
-                'booking_id' => $randTickString ,
-                'passenger_id_number' => $r['no_identitas'],
-                'passenger_gender' => whatGender($r['jenis_kelamin']),
-                'passenger_age_value' => whatAge('Dewasa'),
-                'passenger_age_status' => 'DEWASA',
-                'passenger_address' => $r['alamat'],
-                'passenger_seat_number' => 'NON SEAT'
-            );
-            array_push($dit_numpangs, $dit_numpang);
-        }
-        $response = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://manifest-kapal.dephub.go.id/rest-api/bup/manifest_penumpang/token', [
-            'body' => json_encode([
-                'api_user' => 'TRIBUANA',
-                'api_key' => 'AFQEES'
-            ])
-        ]);
-        if($id_jadwal == "lmuixstd"){
-            $insert = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://manifest-kapal.dephub.go.id/rest-api/bup/manifest_penumpang/insert_penumpang_batch', [
-                'body' => json_encode([
-                    'token' => $response['data']['token'],
-                    'pelabuhan_id' => '510506',
-                    'operator_id' => 'X0109',
-                    'ship_name' => 'Gangga Express 18',
-                    'ship_sail_number' => 'X105091',
-                    'ship_sail_etd' => '2023-10-05 06:30:00',
-                    'ship_sail_eta' => '2023-10-05 07:00:00',
-                    'ship_sail_from' => 'PELABUHAN TRIBUANA',
-                    'ship_sail_destination' => 'PELABUHAN SAMPALAN',
-                    'ship_sail_type' => 'keberangkatan',
-                    'ship_sail_status' => 'domestik',
-                    'data_penumpang' => $dit_numpangs
-                ])
-            ]);
-            array_push($responses, ['ditlala' => $insert->json()]);
-        }else if($id_jadwal == "lmyaeiwt"){
-            $insert = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://manifest-kapal.dephub.go.id/rest-api/bup/manifest_penumpang/insert_penumpang_batch', [
-                'body' => json_encode([
-                    'token' => $response['data']['token'],
-                    'pelabuhan_id' => '510506',
-                    'operator_id' => 'X0109',
-                    'ship_name' => 'Gangga Express 6',
-                    'ship_sail_number' => 'X105192',
-                    'ship_sail_etd' => '2023-10-05 06:00:00',
-                    'ship_sail_eta' => '2023-10-05 06:30:00',
-                    'ship_sail_from' => 'PELABUHAN TRIBUANA',
-                    'ship_sail_destination' => 'PELABUHAN SAMPALAN',
-                    'ship_sail_type' => 'keberangkatan',
-                    'ship_sail_status' => 'domestik',
-                    'data_penumpang' => $dit_numpangs
-                ])
-            ]);
-            array_push($responses, ['ditlala' => $insert->json()]);
-        }else if($id_jadwal == "lmyae8j6"){
-            $insert = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://manifest-kapal.dephub.go.id/rest-api/bup/manifest_penumpang/insert_penumpang_batch', [
-                'body' => json_encode([
-                    'token' => $response['data']['token'],
-                    'pelabuhan_id' => '510506',
-                    'operator_id' => 'X0109',
-                    'ship_name' => 'Gangga Express 2',
-                    'ship_sail_number' => 'X105293',
-                    'ship_sail_etd' => '2023-10-05 13:30:00',
-                    'ship_sail_eta' => '2023-10-05 14:00:00',
-                    'ship_sail_from' => 'PELABUHAN TRIBUANA',
-                    'ship_sail_destination' => 'PELABUHAN SAMPALAN',
-                    'ship_sail_type' => 'keberangkatan',
-                    'ship_sail_status' => 'domestik',
-                    'data_penumpang' => $dit_numpangs
-                ])
-            ]);
-            array_push($responses, ['ditlala' => $insert->json()]);
-        }else if($id_jadwal == "lmyaety9"){
-            $insert = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://manifest-kapal.dephub.go.id/rest-api/bup/manifest_penumpang/insert_penumpang_batch', [
-                'body' => json_encode([
-                    'token' => $response['data']['token'],
-                    'pelabuhan_id' => '510506',
-                    'operator_id' => 'X0109',
-                    'ship_name' => 'Gangga Express 6',
-                    'ship_sail_number' => 'X105394',
-                    'ship_sail_etd' => '2023-10-05 04:00:00',
-                    'ship_sail_eta' => '2023-10-05 04:30:00',
-                    'ship_sail_from' => 'PELABUHAN TRIBUANA',
-                    'ship_sail_destination' => 'PELABUHAN SAMPALAN',
-                    'ship_sail_type' => 'keberangkatan',
-                    'ship_sail_status' => 'domestik',
-                    'data_penumpang' => $dit_numpangs
-                ])
-            ]);
-            array_push($responses, ['ditlala' => $insert->json()]);
-        }
-        
+        Mail::to($emailed)->send(new ConfirmationPayment($data));
         return response()->json($responses, 200);
     }
 
@@ -758,22 +626,160 @@ class PenumpangController extends Controller
     }
 
     public function updateStatusInvoice(Request $request) {
+        function whatGender($jenis_kelamin){
+            if ($jenis_kelamin == 0){
+                return "L";
+            }else {
+                return "P";
+            }
+        }
+    
+        function whatAge($jenis_penumpang){
+            if ($jenis_penumpang == "Dewasa"){
+                return rand(18,40);
+            }else if ($jenis_penumpang == "Anak - anak"){
+                return rand(5,17);
+            }else{
+                return rand(0,4);
+            }
+        }
         $this->validate($request,['id_invoice' => 'required']);
         $id_invoice = $request->id_invoice;
         $invoice = Invoice::find($id_invoice);
-        $penumpangs = DB::table('penumpangs as p')
-                        ->select('p.*')
-                        ->join('keberangkatans as k', 'k.id_penumpang', 'p.id_penumpang')
+        $penumpangs = Penumpang::join('keberangkatans', 'keberangkatans.id_penumpang', 'penumpangs.id_penumpang')
                         ->where('id_invoice', $id_invoice);
         if (count($penumpangs->get()) == 0) {
             return response()->json(['message' => 'Penumpang tidak ditemukan'], 404);
         }
+        $responses = array();
+        $pe = $penumpangs->get();
+        array_push($responses, ['penumpangs' => $pe]);
+        $jml_penumpang = count($pe);
         $penumpangs->update(['status_verif' => 1]);
         $invoice->status = 1;
-        Mail::to("gusbhas@gmail.com")->send(new FinishedPayment($invoice));
+        $emailed = $invoice->email;
+        $id_jadwal = $pe[0]->id_jadwal;
+        $jadwal = JadwalKeberangkatan::query()->where('id_jadwal', $id_jadwal)->firstOrFail();
+        $tanggal_berangkat = str_split($pe[0]->tanggal_keberangkatan, 11)[0] . $jadwal->jadwal;
+        $rute = $jadwal->jadwalToRute()->with('tujuan_awals')->with('tujuan_akhirs')->get();
+        $kapal = $jadwal->jadwalToKapal()->get('nama_kapal');
+        $id_kapal = $jadwal->jadwalToKapal()->get('id_kapal');
+        $nama_kapal = $jadwal->jadwalToKapal()->get('nama_kapal');
+        $jml_real = HistoryKeberangkatan::where('id_jadwal', $id_jadwal)
+                    ->where('id_kapal', $id_kapal[0]->id_kapal)
+                    ->where('tanggal_berangkat', $tanggal_berangkat)
+                    ->pluck('jml_penumpang');
+        $jml = $jml_real[0] + $jml_penumpang;
+        DB::table('history_keberangkatans')
+            ->where('id_jadwal', $id_jadwal)
+            ->where('id_kapal', $id_kapal[0]->id_kapal)
+            ->update(
+                array(
+                    'jml_penumpang' => $jml,
+                )
+            );
+        $randTickString = (string) $id_invoice;
+        $dit_numpangs = array();
+        foreach ($pe as $key => $r) {
+            $dit_numpang = array(
+                'ticket_id' => $id_invoice,
+                'booking_id' => $id_invoice,
+                'passenger_name' => $r['nama_penumpang'],
+                'passenger_nationality_code' => 'ID',
+                'passenger_id_type' => 'KTP',
+                'ticket_id' => $randTickString ,
+                'booking_id' => $randTickString ,
+                'passenger_id_number' => $r['no_identitas'],
+                'passenger_gender' => whatGender($r['jenis_kelamin']),
+                'passenger_age_value' => whatAge('Dewasa'),
+                'passenger_age_status' => 'DEWASA',
+                'passenger_address' => $r['alamat'],
+                'passenger_seat_number' => 'NON SEAT'
+            );
+            array_push($dit_numpangs, $dit_numpang);
+        }
+        $response = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://manifest-kapal.dephub.go.id/rest-api/bup/manifest_penumpang/token', [
+            'body' => json_encode([
+                'api_user' => 'TRIBUANA',
+                'api_key' => 'AFQEES'
+            ])
+        ]);
+        if($id_jadwal == "lmuixstd"){
+            $insert = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://manifest-kapal.dephub.go.id/rest-api/bup/manifest_penumpang/insert_penumpang_batch', [
+                'body' => json_encode([
+                    'token' => $response['data']['token'],
+                    'pelabuhan_id' => '510506',
+                    'operator_id' => 'X0109',
+                    'ship_name' => 'Gangga Express 18',
+                    'ship_sail_number' => 'X105091',
+                    'ship_sail_etd' => str_split($pe[0]->tanggal_keberangkatan, 10)[0] . ' 06:30:00',
+                    'ship_sail_eta' => str_split($pe[0]->tanggal_keberangkatan, 10)[0] . ' 07:00:00',
+                    'ship_sail_from' => 'PELABUHAN TRIBUANA',
+                    'ship_sail_destination' => 'PELABUHAN SAMPALAN',
+                    'ship_sail_type' => 'keberangkatan',
+                    'ship_sail_status' => 'domestik',
+                    'data_penumpang' => $dit_numpangs
+                ])
+            ]);
+            array_push($responses, ['ditlala' => $insert->json()]);
+        }else if($id_jadwal == "lmyaeiwt"){
+            $insert = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://manifest-kapal.dephub.go.id/rest-api/bup/manifest_penumpang/insert_penumpang_batch', [
+                'body' => json_encode([
+                    'token' => $response['data']['token'],
+                    'pelabuhan_id' => '510506',
+                    'operator_id' => 'X0109',
+                    'ship_name' => 'Gangga Express 6',
+                    'ship_sail_number' => 'X105192',
+                    'ship_sail_etd' => str_split($pe[0]->tanggal_keberangkatan, 10)[0] . ' 06:00:00',
+                    'ship_sail_eta' => str_split($pe[0]->tanggal_keberangkatan, 10)[0] . ' 06:30:00',
+                    'ship_sail_from' => 'PELABUHAN TRIBUANA',
+                    'ship_sail_destination' => 'PELABUHAN SAMPALAN',
+                    'ship_sail_type' => 'keberangkatan',
+                    'ship_sail_status' => 'domestik',
+                    'data_penumpang' => $dit_numpangs
+                ])
+            ]);
+            array_push($responses, ['ditlala' => $insert->json()]);
+        }else if($id_jadwal == "lmyae8j6"){
+            $insert = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://manifest-kapal.dephub.go.id/rest-api/bup/manifest_penumpang/insert_penumpang_batch', [
+                'body' => json_encode([
+                    'token' => $response['data']['token'],
+                    'pelabuhan_id' => '510506',
+                    'operator_id' => 'X0109',
+                    'ship_name' => 'Gangga Express 2',
+                    'ship_sail_number' => 'X105293',
+                    'ship_sail_etd' => str_split($pe[0]->tanggal_keberangkatan, 10)[0] . ' 13:30:00',
+                    'ship_sail_eta' => str_split($pe[0]->tanggal_keberangkatan, 10)[0] . ' 14:00:00',
+                    'ship_sail_from' => 'PELABUHAN TRIBUANA',
+                    'ship_sail_destination' => 'PELABUHAN SAMPALAN',
+                    'ship_sail_type' => 'keberangkatan',
+                    'ship_sail_status' => 'domestik',
+                    'data_penumpang' => $dit_numpangs
+                ])
+            ]);
+            array_push($responses, ['ditlala' => $insert->json()]);
+        }else if($id_jadwal == "lmyaety9"){
+            $insert = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://manifest-kapal.dephub.go.id/rest-api/bup/manifest_penumpang/insert_penumpang_batch', [
+                'body' => json_encode([
+                    'token' => $response['data']['token'],
+                    'pelabuhan_id' => '510506',
+                    'operator_id' => 'X0109',
+                    'ship_name' => 'Gangga Express 6',
+                    'ship_sail_number' => 'X105394',
+                    'ship_sail_etd' => str_split($pe[0]->tanggal_keberangkatan, 10)[0] . ' 04:00:00',
+                    'ship_sail_eta' => str_split($pe[0]->tanggal_keberangkatan, 10)[0] . ' 04:30:00',
+                    'ship_sail_from' => 'PELABUHAN TRIBUANA',
+                    'ship_sail_destination' => 'PELABUHAN SAMPALAN',
+                    'ship_sail_type' => 'keberangkatan',
+                    'ship_sail_status' => 'domestik',
+                    'data_penumpang' => $dit_numpangs
+                ])
+            ]);
+            array_push($responses, ['ditlala' => $insert->json()]);
+        }
+        Mail::to($emailed)->send(new FinishedPayment($invoice));
         $invoice->save();
-
-        return response()->json(['penumpangs'=>$penumpangs->get()], 200);
+        return response()->json($responses, 200);
     }
     
     public function getInvoice(Request $request)
@@ -796,7 +802,7 @@ class PenumpangController extends Controller
                         ->where('k.id_invoice', $invoice->id)
                         ->get();
         
-        return response()->json(['invoice' => $invoice, 'penumpangs' => $penumpangs], 200);
+        return response()->json(['invoice' => $invoice, 'penumpangs' => $penumpangs, 'keberangkatans' => $keberangkatans], 200);
     }
 
     public function deletionChecker(Request $request)
@@ -926,7 +932,7 @@ class PenumpangController extends Controller
         if (count($penumpangs->get()) == 0) {
             return response()->json(['message' => 'Penumpang tidak ditemukan'], 404);
         }
-        if ($request->expireddate) {
+        if ($request->expiredDate) {
             $invoice->expiredDate = $request->expiredDate;
         }
         if ($request->nns) {
@@ -952,16 +958,17 @@ class PenumpangController extends Controller
         } else {
             $penumpangs->update(['status_verif' => 1]);
             $invoice->status = 1;
+            $emailed = $invoice->email;
             $invoice->save();
-            Mail::to("gusbhas@gmail.com")->send(new FinishedPayment($invoice));
+            Mail::to($emailed)->send(new FinishedPayment($invoice));
             return response()->json(['invoice'=>$invoice, 'message'=>'Invoice berhasil diupdate dan terbayarkan'], 200);
         }
     }
 
     public function testApi(Request $request){
         $data = Invoice::where('id', 251)->first();
-        Mail::to("gusbhas@gmail.com")->send(new ConfirmationPayment($data));
+        $mail = Mail::to($data->email)->send(new ConfirmationPayment($data));
  
-		return "Email telah dikirim";
+		return $mail;
     }
 }

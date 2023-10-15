@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Invoice;
 
@@ -27,7 +28,8 @@ class ConfirmationPayment extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Payment Confirmation',
+            from: new Address('info@balisanti.siwalatri.klungkungkab.go.id', 'Bali Santi'),
+            subject: 'Konfirmasi Pemesanan',
         );
     }
 
@@ -40,7 +42,7 @@ class ConfirmationPayment extends Mailable
             view: 'confirm',
             with: [
                 'invoice_id' => $this->invoice->id,
-                'qrcode' => $this->invoice->qrValue
+                'qrValue' => $this->invoice->qrValue,
             ],
         );
     }
