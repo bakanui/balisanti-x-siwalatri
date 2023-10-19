@@ -41,7 +41,7 @@ class PaymentAll extends Command
                 <username xsi:type="xsd:string">BALI_SANTI</username>
                 <password xsi:type="xsd:string">hbd3q2p9b4l1s4nt1bpd8ovr</password>
                 <instansi xsi:type="xsd:string">ETIKET_BALI_SANTI</instansi>
-                <tanggal xsi:type="xsd:date">2023-09-26</tanggal>
+                <tanggal xsi:type="xsd:date">2023-10-16</tanggal>
                 <nobukti xsi:type="xsd:integer">0</nobukti>
             </urn:ws_laporan_payment_detail_setelah_no_bukti>
             </soapenv:Body>

@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Mail;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Http;
 use Mtownsend\XmlToArray\XmlToArray;
+use Mchev\Banhammer\IP;
+
 class PenumpangController extends Controller
 {
     public function view_ekspedisi($id_tujuan) {
@@ -880,13 +882,66 @@ class PenumpangController extends Controller
                 'status' => $result['status'],
             ]);
             $log->save();
-            $sts = $result['code'];
-            if ($sts == "00" || $sts == 00){
+            if ($log->save()){
                 $invoice->delete();
                 response()->json(['message'=>$result['message'], 'result'=>$result], 200);
             }else{
                 return response()->json(['message'=>$result['message'], 'result'=>$result], 400);
             }
+        }
+    }
+
+    public function updateInvoiceCallback(Request $request){
+        $ips = IP::banned()->pluck('ip')->toArray();
+        foreach ($ips as $key => $r) {
+            if($r == $request->ip()){
+                return response()->json(['message'=>'IP request tidak dikenal'], 500);
+            }
+        }
+        $bill_number = $request->billNumber;
+        $hashKey = '9360012900000001756'.$request->terminalUser.$request->productCode.$request->billNumber.'XkKe2UXe';
+        // $hashKey = '9360012900000001756'.$request->terminalUser.$request->productCode.'XkKe2UXe';
+        $hasher = hash('sha256',$hashKey);
+        if ($hasher == strtolower($request->hashcodeKey)){
+            $invoice = Invoice::where('id', $bill_number)->firstOrFail();
+            $penumpangs = DB::table('penumpangs as p')
+                        ->select('p.*')
+                        ->join('keberangkatans as k', 'k.id_penumpang', 'p.id_penumpang')
+                        ->where('id_invoice', $invoice->id);
+            if ($request->expiredDate) {
+                $invoice->expiredDate = $request->expiredDate;
+            }
+            if ($request->nns) {
+                $invoice->nns = $request->nns;
+            }
+            if ($request->nmid) {
+                $invoice->nmid = $request->nmid;
+            }
+            if($request->bill_number){
+                $invoice->bill_number = $request->billNumber;
+            }
+            if($request->qrvalue){
+                $invoice->qrValue =  $request->qrvalue;
+            }
+            if($request->trxId){
+                $invoice->trxId =  $request->trxId;
+            }
+            if($request->reffNumber){
+                $invoice->referenceNumber =  $request->reffNumber;
+            }
+            if($request->responseDescription == "Sukses") {
+                $penumpangs->update(['status_verif' => 1]);
+                $invoice->status = 1;
+                $invoice->save();
+                return response()->json(['invoice'=>$invoice, 'message'=>'Invoice berhasil diupdate dan terbayarkan'], 200);
+            } else {
+                $penumpangs->update(['status_verif' => 0]);
+                $invoice->status = 0;
+                $invoice->save();
+                return response()->json(['invoice'=>$invoice, 'message' => 'Invoice berhasil diupdate dan belum terbayarkan'], 200);
+            }
+        } else {
+            return response()->json(['message' => "Hashcode tidak valid"], 500);
         }
     }
     
@@ -966,9 +1021,16 @@ class PenumpangController extends Controller
     }
 
     public function testApi(Request $request){
-        $data = Invoice::where('id', 251)->first();
-        $mail = Mail::to($data->email)->send(new ConfirmationPayment($data));
+        $ips = IP::banned()->pluck('ip')->toArray();
+        foreach ($ips as $key => $r) {
+            if($r == $request->ip()){
+                return response()->json(['message'=>'IP request tidak dikenal'], 500);
+            }
+        }
+        return response()->json(['message'=>'Its here!'], 200);
+        // $data = Invoice::where('id', 251)->first();
+        // $mail = Mail::to($data->email)->send(new ConfirmationPayment($data));
  
-		return $mail;
+		// return $ips;
     }
 }

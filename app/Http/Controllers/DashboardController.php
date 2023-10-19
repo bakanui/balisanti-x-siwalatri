@@ -87,8 +87,8 @@ class DashboardController extends Controller
         
         $response = [
             'detail' => $penumpang,
-            'detail2' => $penumpang_unverif,
-            'datas' => $datas,
+            'detail2' => $datas,
+            'datas' => $penumpang_unverif,
             'tujuans' => $tujuan,
             'jenis' => $jenis,
             'tanggal' => $id_jadwal

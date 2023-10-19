@@ -171,6 +171,7 @@ Route::post('penumpang/update-status-invoice', [PenumpangController::class, 'upd
 Route::get('penumpang/get-invoice', [PenumpangController::class, 'getInvoice']);
 Route::post('penumpang/update-billnumber-invoice', [PenumpangController::class, 'updateBillNumberInvoice']);
 Route::post('penumpang/update-invoice', [PenumpangController::class, 'updateInvoice']);
+Route::post('penumpang/update-invoice-callback', [PenumpangController::class, 'updateInvoiceCallback']);
 Route::get('laporan/harian_armada/detail', [DashboardController::class,'detailHarian']);
 Route::get('laporan/bulanan_armada/detail', [DashboardController::class,'detailBulanan']);
 Route::get('laporan/harian_armada/detail/pdf', [DashboardController::class,'detailHarianPDF']);
@@ -271,7 +272,14 @@ Route::group(['prefix' => 'pengumuman'], function () {
 Route::get('total-penumpang-jadwal', [JadwalKeberangkatanController::class, 'total_penumpang_jadwal']);
 Route::get('xml-to-json', [JadwalKeberangkatanController::class, 'xml_to_json']);
 Route::get('detail-jadwal/{id_jadwal}', [DashboardController::class, 'detailJadwal']);
-Route::get('/testApi', [PenumpangController::class, 'testApi']);
+
+// Route::middleware(['blockIP'])->group(function () {
+//     Route::get('/testApi', [PenumpangController::class, 'testApi']);
+// });
+
+Route::middleware(['block-ip', 'throttle:block-ip'])->group(function () {
+    Route::get('/testApi', [PenumpangController::class, 'testApi']);
+});
 
 Route::group(['prefix' => 'jadwal_keberangkatan'], function () {
     Route::post('{id_armada}', [JadwalKeberangkatanController::class,'store']);

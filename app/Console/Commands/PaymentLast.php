@@ -41,8 +41,8 @@ class PaymentLast extends Command
                 <username xsi:type="xsd:string">BALI_SANTI</username>
                 <password xsi:type="xsd:string">hbd3q2p9b4l1s4nt1bpd8ovr</password>
                 <instansi xsi:type="xsd:string">ETIKET_BALI_SANTI</instansi>
-                <tanggal xsi:type="xsd:date">2023-09-26</tanggal>
-                <nobukti xsi:type="xsd:integer">8547483</nobukti>
+                <tanggal xsi:type="xsd:date">2023-10-16</tanggal>
+                <nobukti xsi:type="xsd:integer">8547564</nobukti>
             </urn:ws_laporan_payment_detail_setelah_no_bukti>
             </soapenv:Body>
         </soapenv:Envelope>
