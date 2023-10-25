@@ -20,6 +20,7 @@ use App\Http\Controllers\JenisPenumpangController;
 use App\Http\Controllers\WisataController;
 use App\Http\Controllers\BpdServicelogController;
 use App\Http\Controllers\PengumumanController;
+use App\Http\Controllers\InvoiceController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -295,4 +296,8 @@ Route::group(['prefix' => 'logs'], function () {
     Route::post('/va-bpd', [BpdServicelogController::class,'storeVALogs']);
     Route::post('/delete', [PenumpangController::class,'deletionChecker']);
     Route::post('/deletion', [PenumpangController::class,'delete']);
+});
+
+Route::group(['prefix' => 'invoice'], function () {
+    Route::get('', [InvoiceController::class,'getInvoices']);
 });
