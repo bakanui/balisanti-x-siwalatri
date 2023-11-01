@@ -872,21 +872,35 @@ class PenumpangController extends Controller
             $response = Http::withHeaders(['Content-Type' => 'text/xml; charset=utf-8',"X-Requested-With" => "XMLHttpRequest"])->send('POST', 'https://maiharta.ddns.net:3100/http://180.242.244.3:7070/ws_bpd_payment/interkoneksi/v1/ws_interkoneksi.php', [
                 'body' => $xmls,
             ]);
-            $arr = XmlToArray::convert($response);
-            $jsonFormatData = $arr["SOAP-ENV:Body"]["ns1:ws_tagihan_delete_by_idResponse"]["return"]["@content"];
-            $result = json_decode($jsonFormatData, true);
-            $log = new BpdServicelog([
-                'code' => $result['code'],
-                'data' => json_encode($result['data']),
-                'message' => $result['message'],
-                'status' => $result['status'],
-            ]);
-            $log->save();
-            if ($log->save()){
-                $invoice->delete();
-                response()->json(['message'=>$result['message'], 'result'=>$result], 200);
+            if($response->getStatusCode() != 200){
+                $penumpang = new BpdServicelog([
+                    'code' => "500",
+                    'data' => json_encode(array()),
+                    'message' => "Terjadi kesalahan pada jaringan.",
+                    'status' => 0,
+                ]);
+                $penumpang->save();
+                return response()->json(['message'=>"Terjadi kesalahan pada jaringan.", 'result'=>$penumpang], 500);
             }else{
-                return response()->json(['message'=>$result['message'], 'result'=>$result], 400);
+                $arr = XmlToArray::convert($response);
+                $jsonFormatData = $arr["SOAP-ENV:Body"]["ns1:ws_tagihan_delete_by_idResponse"]["return"]["@content"];
+                $result = json_decode($jsonFormatData, true);
+                $log = new BpdServicelog([
+                    'code' => $result['code'],
+                    'data' => json_encode($result['data']),
+                    'message' => $result['message'],
+                    'status' => $result['status'],
+                ]);
+                if ($log->save()){
+                    if($result['code'] == "00"){
+                        $invoice->delete();
+                        return response()->json(['message'=>$result['message'], 'result'=>$result], 200);
+                    }else{
+                        return response()->json(['message'=>$result['message'], 'result'=>$result], 400);
+                    }
+                }else{
+                    return response()->json(['message'=>$result['message'] . ". Terjadi kesalahan jaringan.", 'result'=>$result], 400);
+                }
             }
         }
     }

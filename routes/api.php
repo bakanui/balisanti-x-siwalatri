@@ -300,4 +300,5 @@ Route::group(['prefix' => 'logs'], function () {
 
 Route::group(['prefix' => 'invoice'], function () {
     Route::get('', [InvoiceController::class,'getInvoices']);
+    Route::get('/va', [InvoiceController::class,'getRekonVa']);
 });
