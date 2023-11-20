@@ -11,6 +11,6 @@ class Invoice extends Model
     
     public function armada()
     {
-        return $this->belongsTo('App\Models\Armada', 'id_armada', 'id_armada')->select(['id_armada','nama_armada']);
+        return $this->belongsTo('App\Models\Armada', 'id_armada', 'id_armada');
     }
 }

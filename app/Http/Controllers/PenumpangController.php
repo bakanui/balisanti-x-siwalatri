@@ -280,7 +280,7 @@ class PenumpangController extends Controller
         $invoice->grandtotal = $grandtotal;
         $invoice->save();
         $invoice = DB::table('invoices as i')
-                    ->selectRaw('CAST(i.id as CHAR) as id, i.id_armada, a.nama_armada, CAST(ROUND(i.grandtotal,0) as UNSIGNED) as grandtotal, i.qrValue, i.no_va, i.email, i.bill_number, i.status, DATE_FORMAT(i.created_at, "%Y-%m-%d") as created_at, i.payment_method')
+                    ->selectRaw('CAST(i.id as CHAR) as id, i.id_armada, a.nama_armada, a.merchantPan, a.terminalUser, a.passcode, CAST(ROUND(i.grandtotal,0) as UNSIGNED) as grandtotal, i.qrValue, i.no_va, i.email, i.bill_number, i.status, DATE_FORMAT(i.created_at, "%Y-%m-%d") as created_at, i.payment_method')
                     ->join('armadas as a', 'a.id_armada', 'i.id_armada')
                     ->where('i.id', $invoice->id)
                     ->first();
@@ -292,15 +292,23 @@ class PenumpangController extends Controller
         if(count($jml_real) == 0){
             $history = new HistoryKeberangkatan;
             $history->tanggal_berangkat = $tanggal_berangkat;
-            $history->jml_penumpang = 0;
+            $history->jml_penumpang = $jml_penumpang;
             $history->id_jadwal = $id_jadwal;
             $history->id_kapal = $id_kapal[0]->id_kapal;
             $history->save();
+        }else{
+            $jml_add = HistoryKeberangkatan::where('id_jadwal', $id_jadwal)
+            ->where('id_kapal', $id_kapal[0]->id_kapal)
+            ->where('tanggal_berangkat', $tanggal_berangkat)
+            ->first();
+            $jml_all = $jml_add->jml_penumpang + $jml_penumpang;
+            $jml_add->jml_penumpang = $jml_all;
+            $jml_add->save();
         }
-        $randTick = $invoice->id;
-        $emailed = $invoice->email;
-        $data = Invoice::where('id', $randTick)->first();
-        Mail::to($emailed)->send(new ConfirmationPayment($data));
+        // $randTick = $invoice->id;
+        // $emailed = $invoice->email;
+        // $data = Invoice::where('id', $randTick)->first();
+        // Mail::to($emailed)->send(new ConfirmationPayment($data));
         return response()->json($responses, 200);
     }
 
@@ -779,7 +787,7 @@ class PenumpangController extends Controller
             ]);
             array_push($responses, ['ditlala' => $insert->json()]);
         }
-        Mail::to($emailed)->send(new FinishedPayment($invoice));
+        // Mail::to($emailed)->send(new FinishedPayment($invoice));
         $invoice->save();
         return response()->json($responses, 200);
     }
@@ -1029,7 +1037,7 @@ class PenumpangController extends Controller
             $invoice->status = 1;
             $emailed = $invoice->email;
             $invoice->save();
-            Mail::to($emailed)->send(new FinishedPayment($invoice));
+            // Mail::to($emailed)->send(new FinishedPayment($invoice));
             return response()->json(['invoice'=>$invoice, 'message'=>'Invoice berhasil diupdate dan terbayarkan'], 200);
         }
     }
