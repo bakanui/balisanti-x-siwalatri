@@ -8,6 +8,7 @@ use App\Models\Penumpang;
 use App\Models\Tiket;
 use App\Models\Invoice;
 use App\Models\BpdServicelog;
+use App\Models\RekonQris;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use PDF;
@@ -917,15 +918,22 @@ class PenumpangController extends Controller
         $ips = IP::banned()->pluck('ip')->toArray();
         foreach ($ips as $key => $r) {
             if($r == $request->ip()){
-                return response()->json(['message'=>'IP request tidak dikenal'], 500);
+                $log = new BpdServicelog([
+                    'code' => "400",
+                    'data' => json_encode([]),
+                    'message' => 'IP request tidak dikenal - IP: ' . $r,
+                    'status' => 0,
+                ]);
+                $log->save();
+                return response()->json(['message'=>'IP request tidak dikenal - IP: ' . $r], 400);
             }
         }
         $bill_number = $request->billNumber;
-        $hashKey = '9360012900000001756'.$request->terminalUser.$request->productCode.$request->billNumber.'XkKe2UXe';
+        $invoice = Invoice::where('id', $bill_number)->with('armada')->firstOrFail();
+        $hashKey = $invoice->armada->merchantPan.$request->terminalUser.$request->productCode.$request->billNumber.$invoice->armada->passcode;
         // $hashKey = '9360012900000001756'.$request->terminalUser.$request->productCode.'XkKe2UXe';
         $hasher = hash('sha256',$hashKey);
         if ($hasher == strtolower($request->hashcodeKey)){
-            $invoice = Invoice::where('id', $bill_number)->firstOrFail();
             $penumpangs = DB::table('penumpangs as p')
                         ->select('p.*')
                         ->join('keberangkatans as k', 'k.id_penumpang', 'p.id_penumpang')
@@ -955,15 +963,36 @@ class PenumpangController extends Controller
                 $penumpangs->update(['status_verif' => 1]);
                 $invoice->status = 1;
                 $invoice->save();
+                $log = new BpdServicelog([
+                    'code' => "200",
+                    'data' => json_encode($invoice),
+                    'message' => 'Invoice berhasil diupdate dan terbayarkan',
+                    'status' => 1,
+                ]);
+                $log->save();
                 return response()->json(['invoice'=>$invoice, 'message'=>'Invoice berhasil diupdate dan terbayarkan'], 200);
             } else {
                 $penumpangs->update(['status_verif' => 0]);
                 $invoice->status = 0;
                 $invoice->save();
+                $log = new BpdServicelog([
+                    'code' => "200",
+                    'data' => json_encode($invoice),
+                    'message' => 'Invoice berhasil diupdate dan belum terbayarkan',
+                    'status' => 0,
+                ]);
+                $log->save();
                 return response()->json(['invoice'=>$invoice, 'message' => 'Invoice berhasil diupdate dan belum terbayarkan'], 200);
             }
         } else {
-            return response()->json(['message' => "Hashcode tidak valid"], 500);
+            $log = new BpdServicelog([
+                'code' => "400",
+                'data' => json_encode([]),
+                'message' => "Hashcode tidak valid",
+                'status' => 0,
+            ]);
+            $log->save();
+            return response()->json(['message' => "Hashcode tidak valid"], 400);
         }
     }
     
@@ -1022,7 +1051,18 @@ class PenumpangController extends Controller
             $invoice->bill_number = $request->bill_number;
         }
         if($request->qrvalue){
-            $invoice->qrValue =  $request->qrvalue;
+            $invoice->qrValue = $request->qrvalue;
+            $rekon = new RekonQris([
+                'productCode'=>$request->productCode,
+                'qrValue'=>$request->qrvalue,
+                'nmid'=>$request->nmid,
+                'merchantName'=>$request->merchantName,
+                'expiredDate'=>$request->expiredDate,
+                'amount'=>$request->amount,
+                'totalAmount'=>$request->totalAmount,
+                'billNumber'=>$request->bill_number
+            ]);
+            $rekon->save();
         }
         if($request->no_va){
             $invoice->no_va = $request->no_va;
