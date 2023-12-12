@@ -18,7 +18,6 @@ use Illuminate\Support\Facades\Mail;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Http;
 use Mtownsend\XmlToArray\XmlToArray;
-use Mchev\Banhammer\IP;
 
 class PenumpangController extends Controller
 {
@@ -915,19 +914,6 @@ class PenumpangController extends Controller
     }
 
     public function updateInvoiceCallback(Request $request){
-        $ips = IP::banned()->pluck('ip')->toArray();
-        foreach ($ips as $key => $r) {
-            if($r == $request->ip()){
-                $log = new BpdServicelog([
-                    'code' => "400",
-                    'data' => json_encode([]),
-                    'message' => 'IP request tidak dikenal - IP: ' . $r,
-                    'status' => 0,
-                ]);
-                $log->save();
-                return response()->json(['message'=>'IP request tidak dikenal - IP: ' . $r], 400);
-            }
-        }
         $bill_number = $request->billNumber;
         $invoice = Invoice::where('id', $bill_number)->with('armada')->firstOrFail();
         $hashKey = $invoice->armada->merchantPan.$request->terminalUser.$request->productCode.$request->billNumber.$invoice->armada->passcode;
@@ -1083,7 +1069,6 @@ class PenumpangController extends Controller
     }
 
     public function testApi(Request $request){
-        $ips = IP::banned()->pluck('ip')->toArray();
         foreach ($ips as $key => $r) {
             if($r == $request->ip()){
                 return response()->json(['message'=>'IP request tidak dikenal'], 500);
@@ -1094,5 +1079,44 @@ class PenumpangController extends Controller
         // $mail = Mail::to($data->email)->send(new ConfirmationPayment($data));
  
 		// return $ips;
+    }
+
+    public function generateQris(Request $request){
+        $osi = array("merchantPan" => $request->merchantPan,
+            "terminalUser" => $request->terminalUser,
+            "hashcodeKey" => $request->hashcodeKey,
+            "amount" => $request->amount,
+            "billNumber" => $request->billNumber,
+            "merchantName" => $request->merchantName,
+            "operatorName" => $request->operatorName,
+            "customerName" => $request->customerName,
+            "email" => $request->email
+        );
+        $response = Http::withHeaders(['Content-Type' => 'application/json'])->send('POST', 'https://portal.bpdbali.id/openapi/generateQrisPost', [
+            'body' => json_encode($osi)
+        ]);
+        return response()->json($response->json(), 200);
+    }
+
+    public function wsEchoTest(Request $request){
+        $xmls = <<<XML
+        <soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:echoTest">
+                <soapenv:Header/>
+                <soapenv:Body>
+                <urn:ws_echo_test soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+                    <username xsi:type="xsd:string">BALI_SANTI</username>
+                    <password xsi:type="xsd:string">BALISANTI@1234</password>
+                </urn:ws_echo_test>
+                </soapenv:Body>
+            </soapenv:Envelope>
+        XML;
+        $response = Http::withHeaders(['Content-Type' => 'text/xml; charset=utf-8',"X-Requested-With" => "XMLHttpRequest"])->send('POST', 'https://portal.bpdbali.id/ws_bpd_payment/interkoneksi/v1/ws_interkoneksi.php', [
+            'body' => $xmls,
+        ]);
+        $arr = XmlToArray::convert($response);
+        $jsonFormatData = json_encode($arr["SOAP-ENV:Body"]["ns1:ws_echo_testResponse"]["return"]["@content"]);
+        $result = json_decode($jsonFormatData, true);
+        $result2 = json_decode($result, true);
+        return response()->json($result2, 200);
     }
 }

@@ -25,7 +25,7 @@ class PaymentLast extends Command
      *
      * @var string
      */
-    protected $description = 'Melihat/menampilkan data transaksi terakhir yang sudah selesai dalam hari ini.';
+    protected $description = 'Melihat/menampilkan data transaksi Virtual Account BPD terakhir yang sudah selesai dalam hari ini.';
 
     /**
      * Execute the console command.

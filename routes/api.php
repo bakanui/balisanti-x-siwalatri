@@ -160,10 +160,13 @@ Route::group(['prefix' => 'rute'], function () {
         Route::get('get-zona', [JadwalKeberangkatanController::class,'view_zona']);
     });
 
+Route::post('echo-test', [PenumpangController::class,'wsEchoTest']);
+
 Route::get('jenis_tujuan', [JenisTujuanController::class,'index']);
 Route::get('jenis_penumpang', [JenisPenumpangController::class,'index']);
 Route::get('penumpang', [PenumpangController::class,'index']);
 Route::post('penumpang', [PenumpangController::class,'store']);
+Route::post('penumpang/qris', [PenumpangController::class,'generateQris']);
 Route::post('penumpang-group', [PenumpangController::class,'storeGroup']);
 Route::post('penumpang-by-atix', [PenumpangController::class,'storeByAtix']);
 Route::get('get-penumpang-tanggal/{tanggal}', [PenumpangController::class, 'penumpangByTanggal']);

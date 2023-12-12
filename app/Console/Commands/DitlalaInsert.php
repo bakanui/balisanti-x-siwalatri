@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\HistoryKeberangkatan;
+use App\Models\Penumpang;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
@@ -23,7 +23,7 @@ class DitlalaInsert extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Memasukkan akumulasi data manifest penumpang hari ini ke sistem Ditlala.';
 
     /**
      * Execute the console command.
@@ -47,7 +47,7 @@ class DitlalaInsert extends Command
                 return rand(0,4);
             }
         }
-        $tanggal = '2023-11-15';
+        $tanggal = '2023-12-07';
         $keberangkatans = DB::select(
             "SELECT
             k.id_jadwal, 
@@ -98,8 +98,6 @@ class DitlalaInsert extends Command
                     k.id_jadwal = '$r->id_jadwal' AND
                     k.tanggal_keberangkatan = '$t_keberangkatan'
             ");
-            $history = HistoryKeberangkatan::where('id_jadwal', $r->id_jadwal)
-                        ->where('tanggal_berangkat', $tanggal . " " . $r->jadwal)->first();
             $dit_numpangs = array();
             foreach ($penumpangs as $key => $s) {
                 $dit_numpang = array(
@@ -118,6 +116,7 @@ class DitlalaInsert extends Command
                     'passenger_seat_number' => 'NON SEAT'
                 );
                 array_push($dit_numpangs, $dit_numpang);
+                Penumpang::where('id_penumpang',$s->id_penumpang)->update(['flag_ditlala'=>1]);
             }
             $t_depart = $tanggal . " " . $r->jadwal;
             $t_adder = Carbon::createFromFormat('Y-m-d H:i:s', $t_depart);
@@ -144,7 +143,6 @@ class DitlalaInsert extends Command
                     'data_penumpang' => $dit_numpangs
                 ])
             ]);
-            print_r($insert);
         }
     }
 }

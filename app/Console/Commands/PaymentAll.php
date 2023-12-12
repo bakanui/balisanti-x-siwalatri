@@ -25,7 +25,7 @@ class PaymentAll extends Command
      *
      * @var string
      */
-    protected $description = 'Melihat/menampilkan semua data transaksi yang sudah selesai dalam hari ini.';
+    protected $description = 'Melihat/menampilkan semua data transaksi Virtual Account BPD yang sudah selesai dalam hari ini.';
 
     /**
      * Execute the console command.
